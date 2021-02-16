@@ -14,8 +14,7 @@ void setup()
     // power supply voltage [V]
     driver.voltage_power_supply = 12;
     driver.init();
-    gate_driver.begin();
-    gate_driver.set_3pwm_input();
+    gate_driver.begin(PWM_INPUT_MODE_3PWM);
     // link the motor and the driver
     motor.linkDriver(&driver);
 
@@ -50,7 +49,6 @@ void loop()
 // this function can be implemented in serialEvent function as well
 void serialReceiveUserCommand()
 {
-
     // a string to hold incoming data
     static String received_chars;
 
@@ -63,7 +61,6 @@ void serialReceiveUserCommand()
         // end of user input
         if (inChar == '\n')
         {
-
             // change the motor target
             target_velocity = received_chars.toFloat();
             Serial.print("Target velocity ");

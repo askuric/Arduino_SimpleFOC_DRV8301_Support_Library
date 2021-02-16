@@ -30,6 +30,12 @@
 #define OC_ADJ_SET_MASK 0x07C0
 #define OC_ADJ_SET(_oc_adj_) (((uint16_t)_oc_adj_ & 0x001F) << 6)
 
+enum DRV8301_PWM_INPUT_MODE
+{
+    PWM_INPUT_MODE_3PWM,
+    PWM_INPUT_MODE_6PWM
+};
+
 /**
 * Gate driver DRV8301 class
 */
@@ -47,23 +53,26 @@ public:
      */
     DRV8301(int mosi, int miso, int sclk, int cs, int en_gate, int fault);
 
-    /** Initialize pin and reset DRV8301 */
-    void begin(void);
+    /**
+    * Initialize pin and initialize DRV8301
+    * @param pwm_mode DRV8301 PWM signal input mode
+    */
+    void begin(DRV8301_PWM_INPUT_MODE pwm_mode);
 
-    /** Reset all fault bits */
-    void reset_all_faults(void);
-
-    /** Set DRV8301 to usage 3 pwm inputs */
-    void set_3pwm_input(void);
-
-    /** Set DRV8301 to usage 6 pwm inputs */
-    void set_6pwm_input(void);
+    /** Reset DRV8301 */
+    void reset(void);
 
     /**
     * Detect if DRV8301 has fault occurred
     * @retval   0:no faults 1:has faults
     */
     int is_fault(void);
+
+    /**
+    * Read DRV8301's fault value
+    * @retval DRV8301's fault value
+    */
+    int read_fault(void);
 
     /**
     * Get DRV8301's chip id
@@ -85,6 +94,9 @@ private:
     int drv8301_cs_pin;
     int drv8301_en_gate_pin;
     int drv8301_fault_pin;
+
+    uint16_t drv8301_ctrl_reg1_val;
+    uint16_t drv8301_ctrl_reg2_val;
     // DRV8301 functions
     int drv8301_read_reg(uint16_t reg);
     void drv8301_write_reg(uint16_t reg, uint16_t data);

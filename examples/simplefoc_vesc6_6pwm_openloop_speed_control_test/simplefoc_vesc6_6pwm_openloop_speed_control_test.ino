@@ -13,15 +13,14 @@ void setup()
     // driver config
     // power supply voltage [V]
     driver.voltage_power_supply = 12;
-    driver.dead_zone = 0.5;
+    driver.dead_zone = 0.005;
     driver.init();
-    gate_driver.begin();
-    gate_driver.set_6pwm_input();
+    gate_driver.begin(PWM_INPUT_MODE_6PWM);
     // link the motor and the driver
     motor.linkDriver(&driver);
 
     // limiting motor movements
-    motor.voltage_limit = 3;   // [V]
+    motor.voltage_limit = 1.5;   // [V]
     motor.velocity_limit = 20; // [rad/s]
 
     // open loop control config
@@ -51,7 +50,6 @@ void loop()
 // this function can be implemented in serialEvent function as well
 void serialReceiveUserCommand()
 {
-
     // a string to hold incoming data
     static String received_chars;
 
@@ -64,7 +62,6 @@ void serialReceiveUserCommand()
         // end of user input
         if (inChar == '\n')
         {
-
             // change the motor target
             target_velocity = received_chars.toFloat();
             Serial.print("Target velocity ");

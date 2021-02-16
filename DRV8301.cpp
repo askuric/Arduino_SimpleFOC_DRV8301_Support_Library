@@ -18,14 +18,15 @@ DRV8301::DRV8301(int mosi, int miso, int sclk, int cs, int en_gate, int fault)
 }
 
 #pragma GCC push_options
-#pragma GCC optimize("O0")  //Don't use GCC optimize
+#pragma GCC optimize("O0") //Don't use GCC optimize
 /**
  * Use for SPI timing's delay function
  * It's only test on STM32F405/F407 168MHz
  */
 void DRV8301::spi_delay(void)
 {
-    for (int i = 0; i < 22; i++);
+    for (int i = 0; i < 22; i++)
+        ;
 }
 #pragma GCC pop_options
 
@@ -71,8 +72,8 @@ void DRV8301::drv8301_write_reg(uint16_t reg, uint16_t data)
     digitalWrite(drv8301_cs_pin, HIGH);
 }
 
-// Initialize pin and reset DRV8301
-void DRV8301::begin(void)
+// Initialize pin and initialize DRV8301
+void DRV8301::begin(DRV8301_PWM_INPUT_MODE pwm_mode)
 {
     /** Initialize pin */
     pinMode(DRV8301::drv8301_en_gate_pin, OUTPUT);
@@ -85,38 +86,36 @@ void DRV8301::begin(void)
     pinMode(DRV8301::drv8301_sclk_pin, OUTPUT);
     digitalWrite(DRV8301::drv8301_sclk_pin, LOW);
 
-    /** Power UP reset timing */
+    /** Configure register */
+    DRV8301::drv8301_ctrl_reg1_val = 0x0000;
+    DRV8301::drv8301_ctrl_reg1_val = OCP_MODE_DISABLE | OC_ADJ_SET(27); //Disable OC
+
+    switch (pwm_mode)
+    {
+    case PWM_INPUT_MODE_3PWM:
+        DRV8301::drv8301_ctrl_reg1_val |= PWM_MODE_3_PWM_INPUTS;
+        break;
+
+    case PWM_INPUT_MODE_6PWM:
+        DRV8301::drv8301_ctrl_reg1_val |= PWM_MODE_6_PWM_INPUTS;
+        break;
+    }
+
+    DRV8301::reset();
+}
+
+// Reset DRV8301
+void DRV8301::reset(void)
+{
+    /** Reset timing */
+    digitalWrite(DRV8301::drv8301_en_gate_pin, LOW);
     delayMicroseconds(40);
     digitalWrite(DRV8301::drv8301_en_gate_pin, HIGH);
     delay(20);
+
+    /** Update register value */
     DRV8301::drv8301_read_reg(DRV8301_STATUS_REG1);
-    DRV8301::drv8301_write_reg(DRV8301_CONTROL_REG1, OCP_MODE_DISABLE | OC_ADJ_SET(27)); //Disable OC
-}
-
-// Reset all fault bits
-void DRV8301::reset_all_faults(void)
-{
-    uint16_t reg = DRV8301::drv8301_read_reg(DRV8301_CONTROL_REG1) & 0x07FF;
-    reg |= GATE_RESET_RESET_MODE;
-    DRV8301::drv8301_write_reg(DRV8301_CONTROL_REG1, reg);
-}
-
-// Set DRV8301 to usage 3 pwm inputs
-void DRV8301::set_3pwm_input(void)
-{
-    uint16_t reg = DRV8301::drv8301_read_reg(DRV8301_CONTROL_REG1) & 0x07FF;
-    reg &= ~PWM_MODE_MASK;
-    reg |= PWM_MODE_3_PWM_INPUTS;
-    DRV8301::drv8301_write_reg(DRV8301_CONTROL_REG1, reg);
-}
-
-// Set DRV8301 to usage 6 pwm inputs
-void DRV8301::set_6pwm_input(void)
-{
-    uint16_t reg = DRV8301::drv8301_read_reg(DRV8301_CONTROL_REG1) & 0x07FF;
-    reg &= ~PWM_MODE_MASK;
-    reg |= PWM_MODE_6_PWM_INPUTS;
-    DRV8301::drv8301_write_reg(DRV8301_CONTROL_REG1, reg);
+    DRV8301::drv8301_write_reg(DRV8301_CONTROL_REG1, DRV8301::drv8301_ctrl_reg1_val);
 }
 
 // Detect if DRV8301 has fault occurred
@@ -124,6 +123,18 @@ void DRV8301::set_6pwm_input(void)
 int DRV8301::is_fault(void)
 {
     return (int)!digitalRead(DRV8301::drv8301_fault_pin);
+}
+
+// Read DRV8301's fault value
+// retval DRV8301's fault value
+int DRV8301::read_fault(void)
+{
+    uint16_t reg1, reg2;
+    reg1 = DRV8301::drv8301_read_reg(DRV8301_STATUS_REG1) & 0x07FF;
+    reg2 = DRV8301::drv8301_read_reg(DRV8301_STATUS_REG2) & 0x07FF;
+    reg1 &= 0x03FF;
+    reg2 &= 0x0080;
+    return (int)(reg1 | reg2 << 3);
 }
 
 // Get DRV8301's chip id
