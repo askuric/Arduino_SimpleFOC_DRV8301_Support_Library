@@ -8,13 +8,10 @@
 // en_gate   DRV8301 enable pin
 // fault  DRV8301 fault pin (pull_up)
 DRV8301::DRV8301(int mosi, int miso, int sclk, int cs, int en_gate, int fault)
+    :drv8301_mosi_pin(mosi), drv8301_miso_pin(miso), drv8301_sclk_pin(sclk),
+    drv8301_cs_pin(cs), drv8301_en_gate_pin(en_gate), drv8301_fault_pin(fault)
 {
-    DRV8301::drv8301_mosi_pin = mosi;
-    DRV8301::drv8301_miso_pin = miso;
-    DRV8301::drv8301_sclk_pin = sclk;
-    DRV8301::drv8301_cs_pin = cs;
-    DRV8301::drv8301_en_gate_pin = en_gate;
-    DRV8301::drv8301_fault_pin = fault;
+
 }
 
 #pragma GCC push_options
@@ -37,12 +34,12 @@ uint16_t DRV8301::spi_transfer(uint16_t txdata)
 
     for (int i = 0; i < 16; i++)
     {
-        digitalWrite(DRV8301::drv8301_mosi_pin, bitRead(txdata, 15 - i));
-        digitalWrite(DRV8301::drv8301_sclk_pin, HIGH);
-        DRV8301::spi_delay();
-        digitalWrite(DRV8301::drv8301_sclk_pin, LOW);
-        bitWrite(rxdata, 15 - i, digitalRead(DRV8301::drv8301_miso_pin));
-        DRV8301::spi_delay();
+        digitalWrite(drv8301_mosi_pin, bitRead(txdata, 15 - i));
+        digitalWrite(drv8301_sclk_pin, HIGH);
+        spi_delay();
+        digitalWrite(drv8301_sclk_pin, LOW);
+        bitWrite(rxdata, 15 - i, digitalRead(drv8301_miso_pin));
+        spi_delay();
     }
 
     return rxdata;
@@ -53,13 +50,13 @@ int DRV8301::drv8301_read_reg(uint16_t reg)
 {
     uint16_t read_data;
 
-    digitalWrite(DRV8301::drv8301_cs_pin, LOW);
-    read_data = DRV8301::spi_transfer(0x8000 | ((reg & 0x000F) << 11));
-    digitalWrite(DRV8301::drv8301_cs_pin, HIGH);
+    digitalWrite(drv8301_cs_pin, LOW);
+    read_data = spi_transfer(0x8000 | ((reg & 0x000F) << 11));
+    digitalWrite(drv8301_cs_pin, HIGH);
 
-    digitalWrite(DRV8301::drv8301_cs_pin, LOW);
-    read_data = DRV8301::spi_transfer(0xffff);
-    digitalWrite(DRV8301::drv8301_cs_pin, HIGH);
+    digitalWrite(drv8301_cs_pin, LOW);
+    read_data = spi_transfer(0xffff);
+    digitalWrite(drv8301_cs_pin, HIGH);
 
     return read_data;
 }
@@ -68,7 +65,7 @@ int DRV8301::drv8301_read_reg(uint16_t reg)
 void DRV8301::drv8301_write_reg(uint16_t reg, uint16_t data)
 {
     digitalWrite(drv8301_cs_pin, LOW);
-    DRV8301::spi_transfer(((reg & 0x000F) << 11) | (data & 0x07FF));
+    spi_transfer(((reg & 0x000F) << 11) | (data & 0x07FF));
     digitalWrite(drv8301_cs_pin, HIGH);
 }
 
@@ -76,53 +73,53 @@ void DRV8301::drv8301_write_reg(uint16_t reg, uint16_t data)
 void DRV8301::begin(DRV8301_PWM_INPUT_MODE pwm_mode)
 {
     /** Initialize pin */
-    pinMode(DRV8301::drv8301_en_gate_pin, OUTPUT);
-    digitalWrite(DRV8301::drv8301_en_gate_pin, LOW);
-    pinMode(DRV8301::drv8301_fault_pin, INPUT_PULLUP);
-    pinMode(DRV8301::drv8301_cs_pin, OUTPUT);
-    digitalWrite(DRV8301::drv8301_cs_pin, HIGH);
-    pinMode(DRV8301::drv8301_mosi_pin, OUTPUT);
-    pinMode(DRV8301::drv8301_miso_pin, INPUT);
-    pinMode(DRV8301::drv8301_sclk_pin, OUTPUT);
-    digitalWrite(DRV8301::drv8301_sclk_pin, LOW);
+    pinMode(drv8301_en_gate_pin, OUTPUT);
+    digitalWrite(drv8301_en_gate_pin, LOW);
+    pinMode(drv8301_fault_pin, INPUT_PULLUP);
+    pinMode(drv8301_cs_pin, OUTPUT);
+    digitalWrite(drv8301_cs_pin, HIGH);
+    pinMode(drv8301_mosi_pin, OUTPUT);
+    pinMode(drv8301_miso_pin, INPUT);
+    pinMode(drv8301_sclk_pin, OUTPUT);
+    digitalWrite(drv8301_sclk_pin, LOW);
 
     /** Configure register */
-    DRV8301::drv8301_ctrl_reg1_val = 0x0000;
-    DRV8301::drv8301_ctrl_reg1_val = OCP_MODE_DISABLE | OC_ADJ_SET(27); //Disable OC
+    drv8301_ctrl_reg1_val = 0x0000;
+    drv8301_ctrl_reg1_val = OCP_MODE_DISABLE | OC_ADJ_SET(27); //Disable OC
 
     switch (pwm_mode)
     {
     case PWM_INPUT_MODE_3PWM:
-        DRV8301::drv8301_ctrl_reg1_val |= PWM_MODE_3_PWM_INPUTS;
+        drv8301_ctrl_reg1_val |= PWM_MODE_3_PWM_INPUTS;
         break;
 
     case PWM_INPUT_MODE_6PWM:
-        DRV8301::drv8301_ctrl_reg1_val |= PWM_MODE_6_PWM_INPUTS;
+        drv8301_ctrl_reg1_val |= PWM_MODE_6_PWM_INPUTS;
         break;
     }
 
-    DRV8301::reset();
+    reset();
 }
 
 // Reset DRV8301
 void DRV8301::reset(void)
 {
     /** Reset timing */
-    digitalWrite(DRV8301::drv8301_en_gate_pin, LOW);
+    digitalWrite(drv8301_en_gate_pin, LOW);
     delayMicroseconds(40);
-    digitalWrite(DRV8301::drv8301_en_gate_pin, HIGH);
+    digitalWrite(drv8301_en_gate_pin, HIGH);
     delay(20);
 
     /** Update register value */
-    DRV8301::drv8301_read_reg(DRV8301_STATUS_REG1);
-    DRV8301::drv8301_write_reg(DRV8301_CONTROL_REG1, DRV8301::drv8301_ctrl_reg1_val);
+    drv8301_read_reg(DRV8301_STATUS_REG1);
+    drv8301_write_reg(DRV8301_CONTROL_REG1, drv8301_ctrl_reg1_val);
 }
 
 // Detect if DRV8301 has fault occurred
 // retval   0:no faults 1:has faults
 int DRV8301::is_fault(void)
 {
-    return (int)!digitalRead(DRV8301::drv8301_fault_pin);
+    return (int)!digitalRead(drv8301_fault_pin);
 }
 
 // Read DRV8301's fault value
@@ -130,8 +127,8 @@ int DRV8301::is_fault(void)
 int DRV8301::read_fault(void)
 {
     uint16_t reg1, reg2;
-    reg1 = DRV8301::drv8301_read_reg(DRV8301_STATUS_REG1) & 0x07FF;
-    reg2 = DRV8301::drv8301_read_reg(DRV8301_STATUS_REG2) & 0x07FF;
+    reg1 = drv8301_read_reg(DRV8301_STATUS_REG1) & 0x07FF;
+    reg2 = drv8301_read_reg(DRV8301_STATUS_REG2) & 0x07FF;
     reg1 &= 0x03FF;
     reg2 &= 0x0080;
     return (int)(reg1 | reg2 << 3);
@@ -141,5 +138,5 @@ int DRV8301::read_fault(void)
 // retval   chip id
 int DRV8301::get_id(void)
 {
-    return DRV8301::drv8301_read_reg(DRV8301_STATUS_REG2) & 0x000F;
+    return drv8301_read_reg(DRV8301_STATUS_REG2) & 0x000F;
 }
